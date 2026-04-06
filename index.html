@@ -1,0 +1,593 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>123</title>
+    <!-- 国内稳定CDN，无加载失败问题 -->
+    <script src="https://cdn.bootcdn.net/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+    <script src="https://cdn.bootcdn.net/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: "Microsoft YaHei", "PingFang SC", sans-serif;
+        }
+        body {
+            background: #0f172a;
+            color: #f8fafc;
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #1e293b;
+            border-radius: 24px;
+            padding: 30px;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.5);
+        }
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding-bottom: 20px;
+            border-bottom: 2px solid #3b82f6;
+        }
+        .title {
+            font-size: 2rem;
+            font-weight: 800;
+            background: linear-gradient(90deg, #60a5fa, #3b82f6);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            font-size: 0.9rem;
+            opacity: 0.7;
+        }
+        .upload-area {
+            background: #0f172a;
+            border: 2px dashed #3b82f6;
+            border-radius: 16px;
+            padding: 40px 20px;
+            text-align: center;
+            margin-bottom: 30px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .upload-area:hover {
+            border-color: #60a5fa;
+            background: #172540;
+        }
+        .upload-btn {
+            background: linear-gradient(90deg, #3b82f6, #1d4ed8);
+            border: none;
+            padding: 12px 30px;
+            border-radius: 50px;
+            color: white;
+            font-weight: bold;
+            font-size: 1rem;
+            cursor: pointer;
+            margin-bottom: 10px;
+        }
+        .file-input {
+            display: none;
+        }
+        .btn-group {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+        .action-btn {
+            padding: 10px 24px;
+            border-radius: 8px;
+            border: none;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .primary-btn {
+            background: #3b82f6;
+            color: white;
+        }
+        .secondary-btn {
+            background: #475569;
+            color: white;
+        }
+        .action-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .image-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            gap: 15px;
+            max-height: 500px;
+            overflow-y: auto;
+            padding: 10px;
+            background: #0f172a;
+            border-radius: 12px;
+            margin-bottom: 20px;
+        }
+        .img-card {
+            background: #1e293b;
+            border-radius: 12px;
+            padding: 8px;
+            text-align: center;
+            border: 2px solid transparent;
+            cursor: pointer;
+            position: relative;
+        }
+        .img-card.selected {
+            border-color: #3b82f6;
+        }
+        .img-thumb {
+            width: 100%;
+            aspect-ratio: 9/14;
+            object-fit: cover;
+            border-radius: 8px;
+            background: #000;
+        }
+        .img-name {
+            font-size: 0.7rem;
+            margin-top: 6px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+        .remove-btn {
+            position: absolute;
+            top: -6px;
+            right: -6px;
+            background: #ef4444;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            font-weight: bold;
+        }
+        .preview-area {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .preview-canvas {
+            max-width: 200px;
+            border-radius: 12px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.5);
+            aspect-ratio: 9/14;
+        }
+        .progress-wrap {
+            height: 8px;
+            background: #334155;
+            border-radius: 10px;
+            overflow: hidden;
+            margin-bottom: 10px;
+            display: none;
+        }
+        .progress-fill {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #3b82f6, #60a5fa);
+            transition: width 0.2s;
+        }
+        .status-text {
+            text-align: center;
+            font-size: 0.9rem;
+            color: #94a3b8;
+            min-height: 20px;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0f172a;
+            border-radius: 10px;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #3b82f6;
+            border-radius: 10px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="title">123</div>
+            <div class="subtitle">9:14官方比例 | 3600×5600超清 | 固定15MB | 蓝光无水印</div>
+        </div>
+
+        <div class="upload-area" id="uploadArea">
+            <input type="file" id="fileInput" class="file-input" accept="image/*" multiple>
+            <button class="upload-btn" id="uploadBtn">📤 选择图片（支持多选）</button>
+            <div>支持JPG/PNG/WEBP，自动按9:14居中裁剪</div>
+        </div>
+
+        <div class="btn-group">
+            <button id="singleGenBtn" class="action-btn secondary-btn" disabled>✨ 生成选中单张</button>
+            <button id="batchGenBtn" class="action-btn primary-btn" disabled>📦 批量打包ZIP下载</button>
+            <button id="clearBtn" class="action-btn secondary-btn">清空全部</button>
+        </div>
+
+        <div class="preview-area">
+            <canvas id="previewCanvas" class="preview-canvas" width="270" height="420"></canvas>
+        </div>
+
+        <div class="progress-wrap" id="progressWrap">
+            <div class="progress-fill" id="progressFill"></div>
+        </div>
+        <div class="status-text" id="statusText">请上传图片开始制作</div>
+
+        <div class="image-grid" id="imageGrid"></div>
+    </div>
+
+    <script>
+        (function(){
+            // 核心配置
+            const OUTPUT_WIDTH = 3600;
+            const OUTPUT_HEIGHT = 5600;
+            const TARGET_SIZE_MB = 15; // 固定15MB
+            const RATIO = OUTPUT_WIDTH / OUTPUT_HEIGHT;
+
+            // 全局变量
+            let imageList = [];
+            let selectedImgId = null;
+            let processing = false;
+
+            // DOM元素
+            const fileInput = document.getElementById('fileInput');
+            const uploadBtn = document.getElementById('uploadBtn');
+            const uploadArea = document.getElementById('uploadArea');
+            const imageGrid = document.getElementById('imageGrid');
+            const singleGenBtn = document.getElementById('singleGenBtn');
+            const batchGenBtn = document.getElementById('batchGenBtn');
+            const clearBtn = document.getElementById('clearBtn');
+            const previewCanvas = document.getElementById('previewCanvas');
+            const ctxPreview = previewCanvas.getContext('2d');
+            const progressWrap = document.getElementById('progressWrap');
+            const progressFill = document.getElementById('progressFill');
+            const statusText = document.getElementById('statusText');
+
+            // 图片加载函数
+            function loadImage(file) {
+                return new Promise((resolve, reject) => {
+                    const img = new Image();
+                    const url = URL.createObjectURL(file);
+                    img.onload = () => resolve({ img, url });
+                    img.onerror = reject;
+                    img.src = url;
+                });
+            }
+
+            // 核心绘图函数（9:14居中裁剪，蓝光画质）
+            function drawImageToCanvas(canvas, img, width, height) {
+                const ctx = canvas.getContext('2d');
+                canvas.width = width;
+                canvas.height = height;
+                
+                // 居中裁剪计算
+                const imgW = img.width;
+                const imgH = img.height;
+                let sx = 0, sy = 0, sW = imgW, sH = imgH;
+                const imgRatio = imgW / imgH;
+
+                if (imgRatio > RATIO) {
+                    sW = imgH * RATIO;
+                    sx = (imgW - sW) / 2;
+                } else {
+                    sH = imgW / RATIO;
+                    sy = (imgH - sH) / 2;
+                }
+
+                // 超清无水印绘制
+                ctx.clearRect(0, 0, width, height);
+                ctx.imageSmoothingEnabled = true;
+                ctx.imageSmoothingQuality = 'high';
+                ctx.drawImage(img, sx, sy, sW, sH, 0, 0, width, height);
+            }
+
+            // 强制固定为 15MB
+            function addNoiseToImageData(imageData, strength) {
+                const data = new Uint8ClampedArray(imageData.data);
+                const len = data.length;
+                for (let i = 0; i < len; i += 4) {
+                    if (Math.random() < 0.5) {
+                        const delta = (Math.random() - 0.5) * strength;
+                        data[i] = Math.min(255, Math.max(0, data[i] + delta));
+                        data[i+1] = Math.min(255, Math.max(0, data[i+1] + delta * 0.75));
+                        data[i+2] = Math.min(255, Math.max(0, data[i+2] + delta * 0.8));
+                    }
+                }
+                return new ImageData(data, imageData.width, imageData.height);
+            }
+
+            async function blobFromImageData(imgData) {
+                return new Promise(resolve => {
+                    const can = document.createElement('canvas');
+                    can.width = imgData.width;
+                    can.height = imgData.height;
+                    can.getContext('2d').putImageData(imgData, 0, 0);
+                    can.toBlob(resolve, 'image/png', 1.0);
+                });
+            }
+
+            async function adjustToTargetSize(baseCanvas) {
+                const tempCanvas = document.createElement('canvas');
+                tempCanvas.width = baseCanvas.width;
+                tempCanvas.height = baseCanvas.height;
+                const ctx = tempCanvas.getContext('2d');
+                ctx.drawImage(baseCanvas, 0, 0);
+
+                let currentImageData = ctx.getImageData(0, 0, tempCanvas.width, tempCanvas.height);
+                let currentBlob = await blobFromImageData(currentImageData);
+                               const targetSize = 15 * 1024 * 1024;
+                const tolerance = 0.1 * 1024 * 1024;
+
+                // 已经接近 15MB
+                if (Math.abs(currentBlob.size - targetSize) <= tolerance) {
+                    return currentBlob;
+                }
+
+                // 统一往 15MB 靠
+                let strength = 2;
+                let bestBlob = currentBlob;
+                let bestDiff = Math.abs(currentBlob.size - targetSize);
+
+                for (let i = 0; i < 15; i++) {
+                    const noisyData = addNoiseToImageData(currentImageData, strength);
+                    const testBlob = await blobFromImageData(noisyData);
+                    const diff = Math.abs(testBlob.size - targetSize);
+
+                    if (diff < bestDiff) {
+                        bestDiff = diff;
+                        bestBlob = testBlob;
+                    }
+
+                    if (diff <= tolerance) {
+                        return testBlob;
+                    }
+
+                    strength += 2;
+                    if (strength > 30) break;
+                }
+
+                return bestBlob;
+            }
+
+            // 生成单张海报
+            async function generateSinglePoster(imgElement) {
+                const canvas = document.createElement('canvas');
+                drawImageToCanvas(canvas, imgElement, OUTPUT_WIDTH, OUTPUT_HEIGHT);
+                const finalBlob = await adjustToTargetSize(canvas);
+                return finalBlob;
+            }
+
+            // 刷新预览
+            function refreshPreview() {
+                ctxPreview.fillStyle = '#000';
+                ctxPreview.fillRect(0, 0, previewCanvas.width, previewCanvas.height);
+
+                if (!selectedImgId) {
+                    ctxPreview.fillStyle = '#94a3b8';
+                    ctxPreview.font = '12px sans-serif';
+                    ctxPreview.textAlign = 'center';
+                    ctxPreview.fillText('点击图片预览效果', previewCanvas.width/2, previewCanvas.height/2);
+                    return;
+                }
+
+                const imgObj = imageList.find(item => item.id === selectedImgId);
+                if (imgObj && imgObj.img) {
+                    drawImageToCanvas(previewCanvas, imgObj.img, previewCanvas.width, previewCanvas.height);
+                }
+            }
+
+            // 渲染图片列表
+            function renderImageGrid() {
+                imageGrid.innerHTML = '';
+                const hasImage = imageList.length > 0;
+                const hasSelected = selectedImgId && imageList.find(item => item.id === selectedImgId);
+
+                singleGenBtn.disabled = !hasSelected || processing;
+                batchGenBtn.disabled = !hasImage || processing;
+
+                if (!hasImage) {
+                    imageGrid.innerHTML = '<div style="grid-column: 1/-1; text-align:center; padding:40px; color:#94a3b8;">暂无图片，请上传</div>';
+                    refreshPreview();
+                    return;
+                }
+
+                imageList.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'img-card';
+                    if (item.id === selectedImgId) card.classList.add('selected');
+
+                    const thumb = document.createElement('img');
+                    thumb.src = item.url;
+                    thumb.className = 'img-thumb';
+
+                    const nameSpan = document.createElement('div');
+                    nameSpan.className = 'img-name';
+                    nameSpan.innerText = item.name.length > 12 ? item.name.slice(0,9)+'...' : item.name;
+
+                    const removeBtn = document.createElement('div');
+                    removeBtn.className = 'remove-btn';
+                    removeBtn.innerText = '×';
+                    removeBtn.onclick = (e) => {
+                        e.stopPropagation();
+                        removeImage(item.id);
+                    };
+
+                    card.appendChild(thumb);
+                    card.appendChild(nameSpan);
+                    card.appendChild(removeBtn);
+
+                    card.onclick = () => {
+                        selectedImgId = item.id;
+                        renderImageGrid();
+                        refreshPreview();
+                    };
+
+                    imageGrid.appendChild(card);
+                });
+            }
+
+            // 移除图片
+            function removeImage(id) {
+                const index = imageList.findIndex(item => item.id === id);
+                if (index !== -1) {
+                    URL.revokeObjectURL(imageList[index].url);
+                    imageList.splice(index, 1);
+
+                    if (selectedImgId === id) {
+                        selectedImgId = imageList.length ? imageList[0].id : null;
+                    }
+
+                    renderImageGrid();
+                    refreshPreview();
+                    statusText.innerText = `已移除1张图片，剩余${imageList.length}张`;
+                }
+            }
+
+            // 添加图片
+            async function addImages(files) {
+                if (!files.length) return;
+                statusText.innerText = `正在加载${files.length}张图片...`;
+
+                let successCount = 0;
+                for (let file of files) {
+                    if (!file.type.startsWith('image/')) continue;
+
+                    try {
+                        const { img, url } = await loadImage(file);
+                        const newId = Date.now() + '-' + Math.random().toString(36).slice(2);
+
+                        imageList.push({
+                            id: newId,
+                            name: file.name,
+                            file: file,
+                            img: img,
+                            url: url
+                        });
+
+                        successCount++;
+                        if (!selectedImgId) selectedImgId = newId;
+                    } catch (e) {
+                        console.error('图片加载失败', e);
+                    }
+                }
+
+                renderImageGrid();
+                refreshPreview();
+                statusText.innerText = `✅ 成功加载${successCount}张图片，总计${imageList.length}张`;
+            }
+
+            // 事件绑定
+            uploadBtn.onclick = () => fileInput.click();
+            uploadArea.onclick = (e) => {
+                if (e.target !== uploadBtn) fileInput.click();
+            };
+
+            fileInput.onchange = (e) => {
+                if (e.target.files.length) {
+                    addImages(Array.from(e.target.files));
+                    fileInput.value = '';
+                }
+            };
+
+            // 清空按钮
+            clearBtn.onclick = () => {
+                if (processing) return;
+                imageList.forEach(item => URL.revokeObjectURL(item.url));
+                imageList = [];
+                selectedImgId = null;
+                renderImageGrid();
+                refreshPreview();
+                statusText.innerText = '已清空全部图片';
+            };
+
+            // 单张生成
+            singleGenBtn.onclick = async () => {
+                if (!selectedImgId || processing) return;
+                const imgObj = imageList.find(item => item.id === selectedImgId);
+                if (!imgObj) return;
+
+                processing = true;
+                singleGenBtn.disabled = true;
+                batchGenBtn.disabled = true;
+                statusText.innerText = '🖌️ 正在生成超清海报...';
+
+                try {
+                    const blob = await generateSinglePoster(imgObj.img);
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `123_${imgObj.name.replace(/\.[^/.]+$/, '')}.png`;
+                    a.click();
+                    URL.revokeObjectURL(url);
+
+                    statusText.innerText = `✅ 生成完成！文件大小：${(blob.size/1024/1024).toFixed(2)}MB`;
+                } catch (e) {
+                    statusText.innerText = '❌ 生成失败，请重试';
+                    console.error(e);
+                } finally {
+                    processing = false;
+                    singleGenBtn.disabled = !selectedImgId;
+                    batchGenBtn.disabled = imageList.length === 0;
+                }
+            };
+
+            // 批量生成
+            batchGenBtn.onclick = async () => {
+                if (imageList.length === 0 || processing) return;
+
+                processing = true;
+                singleGenBtn.disabled = true;
+                batchGenBtn.disabled = true;
+                progressWrap.style.display = 'block';
+                progressFill.style.width = '0%';
+                statusText.innerText = `📦 开始批量生成${imageList.length}张海报...`;
+
+                const zip = new JSZip();
+                const total = imageList.length;
+                let completed = 0;
+
+                for (let i = 0; i < total; i++) {
+                    const item = imageList[i];
+                    try {
+                        const blob = await generateSinglePoster(item.img);
+                        const fileName = `123_${item.name.replace(/\.[^/.]+$/, '')}.png`;
+                        zip.file(fileName, blob);
+                        completed++;
+                    } catch (e) {
+                        console.warn(`生成失败：${item.name}`, e);
+                        statusText.innerText = `⚠️ 第${i+1}张生成失败，继续处理...`;
+                    }
+
+                    const percent = (completed / total) * 100;
+                    progressFill.style.width = percent + '%';
+                    await new Promise(r => setTimeout(r, 30));
+                }
+
+                const zipBlob = await zip.generateAsync({ type: 'blob' });
+                saveAs(zipBlob, `123_批量海报_${Date.now()}.zip`);
+
+                progressWrap.style.display = 'none';
+                statusText.innerText = `🎉 批量生成完成！共${total}张海报，已自动下载ZIP包`;
+
+                processing = false;
+                singleGenBtn.disabled = !selectedImgId;
+                batchGenBtn.disabled = false;
+            };
+
+            // 初始化
+            refreshPreview();
+        })();
+    </script>
+</body>
+</html>
